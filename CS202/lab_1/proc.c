@@ -93,16 +93,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  // cs202
-  // initial number of syscall
-  p->numsyscall = 0;
-#if STRIDE
-  p->ticket = 0;		       // the number of ticket
-  p->stride = 0;		       // the number of stride = ticket/ all_ticket
-  p->include_all = 0;	       // has this process included into pool? initial:0
-  p->acc_stride = 0;	       // accumulate stride, used for comparison
-  p->sche_cnt = 0;		       // how many times does this process execute?
-#endif
+
 
   release(&ptable.lock);
 
@@ -231,6 +222,22 @@ fork(void)
 
   np->state = RUNNABLE;
 
+  // cs202
+  // initial number of syscall
+  np->numsyscall = 0;
+#if STRIDE
+  np->ticket = 0;		       // the number of ticket
+  //p->stride = 0;		       // the number of stride = ticket/ all_ticket
+  //p->include_all = 0;	       // has this process included into pool? initial:0
+  np->acc_stride = 0;	       // accumulate stride, used for comparison
+  np->sche_cnt = 0;		       // how many times does this process execute?
+#endif
+  np->start_time = ticks;
+  //np->end_time = ticks;
+  np->running_time = 0;
+  np->turnaround_time = 0;
+  np->response_time = 11;
+
   release(&ptable.lock);
 
   return pid;
@@ -287,7 +294,11 @@ exit(void)
 	cprintf("ticket[%d]out, turnover:%d\n",curproc->ticket,curproc->sche_cnt);
   }
   Lflag = 0;
-
+  if(curproc->ticket > 0){
+  	curproc->end_time = ticks;
+  	curproc->turnaround_time = curproc->end_time - curproc->start_time;
+  	cprintf("ticket[%d]:start_time:%d,end_time:%d,turnaround_time:%d,run_time:%d, response_time:%d\n",curproc->ticket,curproc->start_time,curproc->end_time,curproc->turnaround_time,curproc->running_time,curproc->response_time);
+  }
   sched();
   panic("zombie exit");
 }
@@ -362,7 +373,7 @@ void scheduler(void)
     if(Lflag){
     	//cprintf("all_ticket=%d\n",all_ticket);
     }
-    int min_stride = 1000000; // used for finding minimal stride
+    int min_stride = 10000000; // used for finding minimal stride
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
      	if(p->state != RUNNABLE)
           continue;
@@ -379,14 +390,19 @@ void scheduler(void)
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
+      uptime = ticks;
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
       // cs202 p with the lowest acc_stride and choose to run
       if(p->ticket != 0){
       	p->acc_stride += all_ticket/(p->ticket);
-	cprintf("ticket[%d]=stride[%d], currentStride[%d], runtime=%d\n",p->ticket,(all_ticket/p->ticket),min_stride, p->sche_cnt);
+	if(min_stride == 10000)
+		cprintf("ticket[%d]=stride[%d], currentStride[%d], runtime=%d\n",p->ticket,(all_ticket/p->ticket),min_stride, p->sche_cnt);
 	p->sche_cnt++;
+	//cprintf("acc_stride = %d\n",p->acc_stride);
+	if(p->sche_cnt == 1)
+	  p->response_time = uptime - p->start_time;
       }
 
       swtch(&(c->scheduler), p->context);
@@ -451,6 +467,8 @@ sched(void)
 {
   int intena;
   struct proc *p = myproc();
+  // cs202
+  p->running_time += ticks - uptime;
 
   if(!holding(&ptable.lock))
     panic("sched ptable.lock");

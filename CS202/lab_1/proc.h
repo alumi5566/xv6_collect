@@ -34,6 +34,9 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+//cs 202
+int uptime;
+
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
@@ -52,10 +55,15 @@ struct proc {
   // cs202
   int numsyscall;	       // the number of syscall
   int ticket;		       // the number of ticket
-  int stride;		       // the number of stride = ticket/ all_ticket
-  int include_all;	       // has this process included into pool? initial:0
+  //int stride;		       // the number of stride = ticket/ all_ticket
+  //int include_all;	       // has this process included into pool? initial:0
   int acc_stride;	       // accumulate stride, used for comparison
   int sche_cnt;		       // how many times does this process execute?
+  int start_time;
+  int end_time;
+  int turnaround_time;
+  int running_time;		// waiting time = turnaround time - running time
+  int response_time;
 };
 
 // Process memory is laid out contiguously, low addresses first:
