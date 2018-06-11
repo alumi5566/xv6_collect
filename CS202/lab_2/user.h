@@ -1,4 +1,5 @@
 struct stat;
+struct rtcdate;
 
 // system calls
 int fork(void);
@@ -18,9 +19,12 @@ int link(char*, char*);
 int mkdir(char*);
 int chdir(char*);
 int dup(int);
-int getpid();
+int getpid(void);
 char* sbrk(int);
 int sleep(int);
+int uptime(void);
+//cs202
+int clone(void*,int);
 
 // ulib.c
 int stat(char*, struct stat*);
@@ -35,3 +39,12 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+// threadlib.c
+struct lock_t;
+void thread_create(void *(*start_routine)(void*), void *arg);
+//void thread_join();
+void lock_init(struct lock_t *);
+void lock_acquire(struct lock_t *);
+void lock_release(struct lock_t *);
+

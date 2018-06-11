@@ -28,3 +28,6 @@ SYSCALL(dup)
 SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
+SYSCALL(uptime)
+//cs202
+SYSCALL(clone)
